@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: strand-web-sm
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels: {app: strand-web}
+  namespaceSelector:
+    matchNames: ["agents"]
+  endpoints:
+    - port: http
+      interval: 15s
+      path: /metrics   # (prom-client default is /metrics; we bound to 9091)
+      scheme: http
+      targetPort: 9091

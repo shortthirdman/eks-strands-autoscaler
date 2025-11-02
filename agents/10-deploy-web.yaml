@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strand-web
+  namespace: agents
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: strand-web}
+  template:
+    metadata:
+      labels: {app: strand-web}
+    spec:
+      serviceAccountName: strand-agents-sa
+      containers:
+      - name: web
+        image: <acct>.dkr.ecr.us-east-1.amazonaws.com/strand-agent:latest
+        ports:
+          - containerPort: 8000
+          - containerPort: 9091   # Prometheus metrics
+        env:
+          - name: AWS_REGION
+            value: "us-east-1"
+          - name: AGENT_MEMORY_TABLE
+            value: "StrandAgentMemory"
+          - name: OPENAI_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: agent-secrets
+                key: OPENAI_API_KEY
+        readinessProbe:
+          httpGet: {path: /docs, port: 8000}
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: {path: /docs, port: 8000}
+          initialDelaySeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: strand-web-svc
+  namespace: agents
+spec:
+  selector: {app: strand-web}
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000

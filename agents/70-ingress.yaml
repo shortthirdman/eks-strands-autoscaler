@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: strand-web-ing
+  namespace: agents
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: agents.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: strand-web-svc
+            port:
+              number: 80
