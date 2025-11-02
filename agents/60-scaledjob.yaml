@@ -1,0 +1,38 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: strand-worker-sj
+  namespace: agents
+spec:
+  jobTargetRef:
+    template:
+      spec:
+        serviceAccountName: strand-agents-sa
+        restartPolicy: Never
+        containers:
+        - name: worker
+          image: <acct>.dkr.ecr.us-east-1.amazonaws.com/strand-agent:latest
+          command: ["python", "worker.py"]
+          env:
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: SQS_QUEUE_URL
+              value: "https://sqs.us-east-1.amazonaws.com/<acct>/strand-agent-jobs"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: OPENAI_API_KEY
+  pollingInterval: 15
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  maxReplicaCount: 50              # upper bound for parallelism
+  rolloutStrategy: gradual
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURL: "https://sqs.us-east-1.amazonaws.com/<acct>/strand-agent-jobs"
+        queueLength: "5"          # each 5 msgs → 1 job
+        awsRegion: "us-east-1"
+      authenticationRef:
+        name: ta-irsa

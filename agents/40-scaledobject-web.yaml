@@ -1,0 +1,24 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: strand-web-so
+  namespace: agents
+spec:
+  scaleTargetRef:
+    name: strand-web
+  minReplicaCount: 2
+  maxReplicaCount: 15
+  cooldownPeriod: 120
+  pollingInterval: 15
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+        metricName: rate_tokens_processed
+        query: |
+          sum(rate(tokens_processed_total[1m]))
+        threshold: "50"    # target sum rate (tokens/sec)
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: "70"
